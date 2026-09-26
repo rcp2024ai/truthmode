@@ -1,0 +1,1543 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>TRUTHMODE | Personal Thinking & Content Engine</title>
+    <!-- Web App Manifest for mobile PWA install -->
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+    <link rel="apple-touch-icon" href="icon-192.png">
+    <meta name="theme-color" content="#0A192F">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="TRUTHMODE">
+    
+    <!-- Tailwind CSS & FontAwesome -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            dark: '#0A192F',
+                            navy: '#112240',
+                            slate: '#1E2D4A',
+                            accent: '#FACC15',
+                            accentHover: '#EAB308',
+                            light: '#E2E8F0',
+                            muted: '#94A3B8'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+        
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: #070F1E;
+            color: #E2E8F0;
+            overscroll-behavior-y: none;
+        }
+
+        .mono {
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        /* Pulsing animations for active recording */
+        @keyframes pulse-ring {
+            0% { transform: scale(0.95); opacity: 0.8; }
+            50% { transform: scale(1.15); opacity: 0.3; }
+            100% { transform: scale(0.95); opacity: 0.8; }
+        }
+
+        .pulse-wave {
+            animation: pulse-ring 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+
+        /* Glassmorphism */
+        .glass-card {
+            background: rgba(17, 34, 64, 0.75);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .glass-card-hover:active, .glass-card-hover:hover {
+            border-color: rgba(250, 204, 21, 0.3);
+            background: rgba(24, 45, 82, 0.85);
+        }
+
+        /* Custom scrollbars */
+        ::-webkit-scrollbar {
+            width: 4px;
+            height: 4px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 4px;
+        }
+
+        /* Safe area for mobile notch / gesture bar */
+        .safe-bottom {
+            padding-bottom: env(safe-area-inset-bottom, 16px);
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between selection:bg-brand-accent selection:text-brand-dark">
+
+    <!-- Top App Bar -->
+    <header class="sticky top-0 z-40 bg-brand-dark/90 backdrop-blur-md border-b border-white/10 px-4 py-3 sm:px-6">
+        <div class="max-w-xl mx-auto flex items-center justify-between">
+            <div class="flex items-center space-x-2.5">
+                <div class="w-8 h-8 rounded-lg bg-gradient-to-tr from-brand-accent to-amber-300 flex items-center justify-center text-brand-dark font-black text-sm shadow-md shadow-brand-accent/20">
+                    <i class="fas fa-arrow-up text-brand-dark text-xs"></i>
+                </div>
+                <div>
+                    <h1 class="font-extrabold text-base tracking-wider text-white flex items-center gap-1.5">
+                        TRUTHMODE
+                        <span class="text-[10px] uppercase font-bold tracking-widest px-1.5 py-0.5 rounded bg-brand-accent/20 text-brand-accent border border-brand-accent/30">MVP</span>
+                    </h1>
+                    <p class="text-[11px] text-brand-muted leading-tight">Your thinking. Organized.</p>
+                </div>
+            </div>
+            
+            <div class="flex items-center space-x-2">
+                <span id="apiIndicator" class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                    <span id="apiStatusLabel">Gemini Live</span>
+                </span>
+                <button onclick="switchTab('settings')" class="w-8 h-8 rounded-lg text-brand-muted hover:text-white hover:bg-white/5 transition flex items-center justify-center">
+                    <i class="fas fa-sliders-h text-sm"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="flex-1 max-w-xl w-full mx-auto p-4 sm:p-5 flex flex-col pb-24">
+
+        <!-- VIEW 1: CAPTURE (HOME) -->
+        <section id="view-capture" class="flex flex-col space-y-5">
+            
+            <!-- Daily Intelligence Banner -->
+            <div class="glass-card rounded-2xl p-4 border border-white/10">
+                <div class="flex items-center justify-between mb-3">
+                    <div class="flex items-center space-x-2">
+                        <i class="fas fa-brain text-brand-accent text-sm"></i>
+                        <span class="text-xs font-semibold uppercase tracking-wider text-brand-muted">Thinking Today</span>
+                    </div>
+                    <span id="statDate" class="text-xs text-brand-muted font-mono">Today</span>
+                </div>
+                <div class="grid grid-cols-3 gap-2 text-center">
+                    <div class="p-2.5 rounded-xl bg-white/5 border border-white/5">
+                        <div id="statTotalToday" class="text-xl font-bold text-white">0</div>
+                        <div class="text-[10px] text-brand-muted uppercase font-medium">Captured</div>
+                    </div>
+                    <div class="p-2.5 rounded-xl bg-white/5 border border-white/5">
+                        <div id="statInsightsToday" class="text-xl font-bold text-brand-accent">0</div>
+                        <div class="text-[10px] text-brand-muted uppercase font-medium">Insights</div>
+                    </div>
+                    <div class="p-2.5 rounded-xl bg-white/5 border border-white/5">
+                        <div id="statAvgTruthScore" class="text-xl font-bold text-emerald-400">--</div>
+                        <div class="text-[10px] text-brand-muted uppercase font-medium">Avg Truth™</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Big Microphone Capture Button Area -->
+            <div class="flex flex-col items-center justify-center py-6 sm:py-8">
+                <div class="relative flex items-center justify-center">
+                    <!-- Subtle ambient glow -->
+                    <div class="absolute w-44 h-44 rounded-full bg-brand-accent/10 blur-2xl pointer-events-none"></div>
+                    
+                    <!-- Record Action Button -->
+                    <button id="mainRecordBtn" onclick="startAudioCapture()" class="relative z-10 w-28 h-28 sm:w-32 sm:h-32 rounded-full bg-gradient-to-tr from-brand-accent to-amber-300 text-brand-dark shadow-xl shadow-brand-accent/20 flex flex-col items-center justify-center active:scale-95 transition-transform duration-150 hover:brightness-105">
+                        <i class="fas fa-microphone text-3xl sm:text-4xl mb-1"></i>
+                        <span class="text-xs font-black tracking-wider uppercase">Speak</span>
+                    </button>
+                </div>
+                <p class="text-xs text-brand-muted font-medium text-center mt-4">
+                    Tap to speak a thought, observation, or idea.<br>
+                    <span class="text-slate-400">TRUTHMODE categorizes, scores, and extracts insights.</span>
+                </p>
+                
+                <!-- Quick Text Toggle -->
+                <button onclick="toggleTextDrawer()" class="mt-3 text-xs font-semibold text-brand-accent/90 hover:text-brand-accent flex items-center gap-1.5 transition">
+                    <i class="fas fa-keyboard text-xs"></i>
+                    <span>Or type silently</span>
+                </button>
+            </div>
+
+            <!-- Collapsible Text Input Drawer -->
+            <div id="textInputDrawer" class="hidden glass-card rounded-2xl p-4 border border-white/10 space-y-3">
+                <div class="flex items-center justify-between">
+                    <label class="text-xs font-semibold text-brand-muted uppercase tracking-wider">Type a thought</label>
+                    <button onclick="toggleTextDrawer()" class="text-brand-muted hover:text-white text-xs"><i class="fas fa-times"></i></button>
+                </div>
+                <textarea id="typedThoughtInput" rows="3" class="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-brand-accent resize-none" placeholder="What idea, insight, or observation is on your mind?"></textarea>
+                <div class="flex justify-between items-center">
+                    <span class="text-[11px] text-slate-500">Cmd/Ctrl + Enter to process</span>
+                    <button onclick="processTypedThought()" id="submitTypedBtn" class="px-4 py-2 bg-brand-accent hover:bg-brand-accentHover text-brand-dark rounded-xl text-xs font-bold transition flex items-center gap-2">
+                        <span>Analyze Thought</span>
+                        <i class="fas fa-arrow-right"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Recent Thoughts Stream -->
+            <div class="space-y-3 pt-2">
+                <div class="flex items-center justify-between px-1">
+                    <h2 class="text-xs font-bold uppercase tracking-wider text-brand-muted flex items-center gap-1.5">
+                        <i class="fas fa-clock-rotate-left"></i>
+                        Recent Thoughts
+                    </h2>
+                    <button onclick="switchTab('thoughts')" class="text-xs font-semibold text-brand-accent hover:underline">
+                        View All
+                    </button>
+                </div>
+                
+                <div id="recentThoughtsList" class="space-y-2.5">
+                    <!-- Populated dynamically via JS -->
+                    <div class="text-center py-8 text-brand-muted text-xs flex flex-col items-center justify-center space-y-2.5">
+                        <p class="italic">No thoughts captured yet. Tap the microphone to capture your first!</p>
+                        <button onclick="loadSampleThoughts()" class="px-3 py-1.5 rounded-lg bg-brand-accent/15 border border-brand-accent/30 text-brand-accent text-xs font-semibold hover:bg-brand-accent/25 transition">
+                            <i class="fas fa-sparkles mr-1"></i> Load 3 Sample Thoughts
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+        </section>
+
+        <!-- VIEW 2: THOUGHTS LIBRARY -->
+        <section id="view-thoughts" class="hidden flex flex-col space-y-4">
+            
+            <!-- Search & Filters -->
+            <div class="space-y-2.5">
+                <div class="relative">
+                    <i class="fas fa-search absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+                    <input type="text" id="librarySearchInput" oninput="handleLibrarySearch()" placeholder="Search thoughts, insights, topics, or transcripts..." class="w-full bg-brand-navy border border-white/10 rounded-xl pl-9 pr-8 py-2.5 text-xs text-white placeholder-slate-400 focus:outline-none focus:border-brand-accent">
+                    <button id="clearSearchBtn" onclick="clearLibrarySearch()" class="hidden absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white text-xs">
+                        <i class="fas fa-times-circle"></i>
+                    </button>
+                </div>
+
+                <!-- Category Pills (Horizontal scroll) -->
+                <div class="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar text-xs font-semibold">
+                    <button onclick="filterCategory('ALL')" class="cat-pill active px-3 py-1.5 rounded-lg bg-brand-accent text-brand-dark whitespace-nowrap transition" data-cat="ALL">All (<span id="catCountAll">0</span>)</button>
+                    <button onclick="filterCategory('IDEA')" class="cat-pill px-3 py-1.5 rounded-lg bg-white/5 text-slate-300 hover:bg-white/10 whitespace-nowrap transition" data-cat="IDEA">💡 Ideas</button>
+                    <button onclick="filterCategory('INSIGHT')" class="cat-pill px-3 py-1.5 rounded-lg bg-white/5 text-slate-300 hover:bg-white/10 whitespace-nowrap transition" data-cat="INSIGHT">🔍 Insights</button>
+                    <button onclick="filterCategory('STORY')" class="cat-pill px-3 py-1.5 rounded-lg bg-white/5 text-slate-300 hover:bg-white/10 whitespace-nowrap transition" data-cat="STORY">📖 Stories</button>
+                    <button onclick="filterCategory('PROBLEM')" class="cat-pill px-3 py-1.5 rounded-lg bg-white/5 text-slate-300 hover:bg-white/10 whitespace-nowrap transition" data-cat="PROBLEM">⚠️ Problems</button>
+                    <button onclick="filterCategory('SOLUTION')" class="cat-pill px-3 py-1.5 rounded-lg bg-white/5 text-slate-300 hover:bg-white/10 whitespace-nowrap transition" data-cat="SOLUTION">🛠️ Solutions</button>
+                    <button onclick="filterCategory('OPINION')" class="cat-pill px-3 py-1.5 rounded-lg bg-white/5 text-slate-300 hover:bg-white/10 whitespace-nowrap transition" data-cat="OPINION">🗣️ Opinions</button>
+                    <button onclick="filterCategory('LESSON')" class="cat-pill px-3 py-1.5 rounded-lg bg-white/5 text-slate-300 hover:bg-white/10 whitespace-nowrap transition" data-cat="LESSON">🎓 Lessons</button>
+                    <button onclick="filterCategory('QUESTION')" class="cat-pill px-3 py-1.5 rounded-lg bg-white/5 text-slate-300 hover:bg-white/10 whitespace-nowrap transition" data-cat="QUESTION">❓ Questions</button>
+                </div>
+
+                <!-- Sort & Count Meta -->
+                <div class="flex items-center justify-between text-[11px] text-brand-muted px-1">
+                    <span id="filteredResultsLabel">Showing 0 thoughts</span>
+                    <div class="flex items-center gap-1.5">
+                        <span>Sort:</span>
+                        <select id="sortSelect" onchange="renderThoughtsLibrary()" class="bg-brand-navy border border-white/10 rounded px-2 py-1 text-slate-200 text-[11px] focus:outline-none">
+                            <option value="newest">Newest First</option>
+                            <option value="highest_score">Highest TRUTH SCORE™</option>
+                            <option value="oldest">Oldest First</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Library Cards Container -->
+            <div id="libraryContainer" class="space-y-3">
+                <!-- Rendered dynamically via JS -->
+            </div>
+
+        </section>
+
+        <!-- VIEW 3: DISCOVER & INTELLIGENCE -->
+        <section id="view-discover" class="hidden flex flex-col space-y-4">
+            <div class="glass-card rounded-2xl p-4 border border-white/10 space-y-2">
+                <div class="flex items-center space-x-2">
+                    <i class="fas fa-compass text-brand-accent text-base"></i>
+                    <h2 class="font-bold text-sm text-white">Pattern & Theme Intelligence</h2>
+                </div>
+                <p class="text-xs text-brand-muted leading-relaxed">
+                    TRUTHMODE scans across your accumulated thoughts to discover recurring themes, emerging ideas, and high-potential content clusters.
+                </p>
+                <div class="pt-2">
+                    <button onclick="synthesizeDiscoverClusters()" id="synthesizeBtn" class="w-full bg-gradient-to-r from-brand-accent to-amber-300 text-brand-dark px-4 py-2.5 rounded-xl font-bold text-xs flex items-center justify-center gap-2 hover:brightness-105 transition shadow-lg shadow-brand-accent/15">
+                        <i class="fas fa-sparkles"></i>
+                        <span>Discover Recurring Patterns & Content Clusters</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Recurring Topics Cloud -->
+            <div class="glass-card rounded-2xl p-4 border border-white/10 space-y-3">
+                <h3 class="text-xs font-bold uppercase tracking-wider text-brand-muted flex items-center gap-2">
+                    <i class="fas fa-tags text-brand-accent"></i>
+                    Top Recurring Topics
+                </h3>
+                <div id="topicsCloud" class="flex flex-wrap gap-1.5">
+                    <span class="text-xs text-brand-muted italic">Log more thoughts to see topic clusters emerge.</span>
+                </div>
+            </div>
+
+            <!-- Discover Synthesis Results Output -->
+            <div id="discoverResultsBox" class="hidden glass-card rounded-2xl p-5 border border-brand-accent/30 space-y-3">
+                <div class="flex items-center justify-between border-b border-white/10 pb-2">
+                    <h3 class="text-sm font-bold text-brand-accent flex items-center gap-2">
+                        <i class="fas fa-lightbulb"></i>
+                        Synthesis Insights & Connections
+                    </h3>
+                    <button onclick="copyDiscoverText()" class="text-xs text-brand-muted hover:text-white"><i class="fas fa-copy"></i></button>
+                </div>
+                <div id="discoverContent" class="text-xs text-slate-200 leading-relaxed space-y-2 prose prose-invert max-w-none">
+                    <!-- Injected here -->
+                </div>
+            </div>
+        </section>
+
+        <!-- VIEW 4: SETTINGS & BACKUP -->
+        <section id="view-settings" class="hidden flex flex-col space-y-4">
+            
+            <!-- API Key Management -->
+            <div class="glass-card rounded-2xl p-4 border border-white/10 space-y-3">
+                <div class="flex items-center space-x-2">
+                    <i class="fas fa-key text-brand-accent"></i>
+                    <h2 class="font-bold text-sm text-white">Google AI Studio API Key</h2>
+                </div>
+                <p class="text-xs text-brand-muted leading-relaxed">
+                    By default, TRUTHMODE utilizes the active environment key. If you wish to use your own personal API key from <a href="https://aistudio.google.com/apikey" target="_blank" class="text-brand-accent underline">Google AI Studio</a>, configure it below:
+                </p>
+                <div class="flex gap-2">
+                    <input type="password" id="customApiKeyInput" placeholder="AIzaSy... (leave blank for auto environment)" class="flex-1 bg-black/40 border border-white/10 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-brand-accent">
+                    <button onclick="saveCustomApiKey()" class="px-3 py-2 bg-brand-accent text-brand-dark rounded-xl text-xs font-bold hover:brightness-105">Save</button>
+                    <button onclick="clearCustomApiKey()" class="px-3 py-2 bg-white/10 text-slate-300 rounded-xl text-xs font-semibold hover:bg-white/20">Reset</button>
+                </div>
+            </div>
+
+            <!-- Data Portability & Backup -->
+            <div class="glass-card rounded-2xl p-4 border border-white/10 space-y-3">
+                <div class="flex items-center space-x-2">
+                    <i class="fas fa-shield-halved text-brand-accent"></i>
+                    <h2 class="font-bold text-sm text-white">Data Portability & Vault Backup</h2>
+                </div>
+                <p class="text-xs text-brand-muted leading-relaxed">
+                    Your thoughts belong strictly to you and are stored locally in your phone's IndexedDB. Export them anytime to Markdown (for Obsidian/Notion) or JSON.
+                </p>
+                
+                <div class="grid grid-cols-2 gap-2 pt-1">
+                    <button onclick="exportAllAsMarkdown()" class="p-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-left transition">
+                        <div class="text-brand-accent text-sm mb-1"><i class="fas fa-file-lines"></i></div>
+                        <div class="text-xs font-bold text-white">Export Markdown</div>
+                        <div class="text-[10px] text-brand-muted">Formatted notes with tags & scores</div>
+                    </button>
+                    
+                    <button onclick="exportAllAsJSON()" class="p-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-left transition">
+                        <div class="text-emerald-400 text-sm mb-1"><i class="fas fa-database"></i></div>
+                        <div class="text-xs font-bold text-white">Export JSON</div>
+                        <div class="text-[10px] text-brand-muted">Complete raw backup of dataset</div>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Database Stats & Reset -->
+            <div class="glass-card rounded-2xl p-4 border border-white/10 space-y-2">
+                <div class="flex justify-between items-center">
+                    <span class="text-xs text-brand-muted">Local Dataset Entries:</span>
+                    <span id="settingsTotalCount" class="text-xs font-bold text-white">0</span>
+                </div>
+                <div class="flex justify-between items-center">
+                    <span class="text-xs text-brand-muted">Storage Engine:</span>
+                    <span class="text-xs font-mono text-emerald-400">IndexedDB (Offline Ready)</span>
+                </div>
+                <div class="pt-3 border-t border-white/10 flex justify-end">
+                    <button onclick="confirmClearDatabase()" class="text-xs text-red-400 hover:text-red-300 flex items-center gap-1.5 transition">
+                        <i class="fas fa-trash-can"></i>
+                        <span>Clear All Local Thoughts</span>
+                    </button>
+                </div>
+            </div>
+
+        </section>
+
+    </main>
+
+    <!-- FULLSCREEN RECORDING MODAL OVERLAY -->
+    <div id="recordingOverlay" class="fixed inset-0 z-50 bg-[#070F1E]/95 backdrop-blur-xl hidden flex flex-col justify-between p-6 safe-bottom">
+        <!-- Overlay Header -->
+        <div class="flex justify-between items-center max-w-md w-full mx-auto">
+            <span class="text-xs font-bold tracking-widest text-brand-accent uppercase flex items-center gap-2">
+                <span class="w-2 h-2 rounded-full bg-red-500 animate-ping"></span>
+                Recording Active
+            </span>
+            <button onclick="cancelAudioCapture()" class="w-9 h-9 rounded-full bg-white/10 text-slate-400 hover:text-white flex items-center justify-center transition">
+                <i class="fas fa-times text-sm"></i>
+            </button>
+        </div>
+
+        <!-- Center Waveform & Timer -->
+        <div class="flex flex-col items-center justify-center space-y-6 max-w-md w-full mx-auto my-auto">
+            <!-- Pulsing Rings -->
+            <div class="relative w-40 h-40 flex items-center justify-center">
+                <div class="absolute inset-0 rounded-full bg-red-500/20 pulse-wave"></div>
+                <div class="absolute inset-4 rounded-full bg-brand-accent/20 pulse-wave" style="animation-delay: 0.5s;"></div>
+                <div class="relative w-24 h-24 rounded-full bg-gradient-to-tr from-brand-accent to-amber-400 text-brand-dark flex items-center justify-center shadow-2xl shadow-brand-accent/30">
+                    <i class="fas fa-microphone text-4xl"></i>
+                </div>
+            </div>
+
+            <!-- Time Display -->
+            <div class="text-center space-y-1">
+                <div id="recordingTimer" class="font-mono text-3xl font-extrabold text-white tracking-widest">00:00</div>
+                <p class="text-xs text-slate-400">Speak your mind naturally. Don't worry about structuring it.</p>
+            </div>
+        </div>
+
+        <!-- Overlay Action Controls -->
+        <div class="max-w-md w-full mx-auto flex items-center justify-between gap-4">
+            <button onclick="cancelAudioCapture()" class="flex-1 py-3.5 rounded-xl bg-white/10 hover:bg-white/15 text-slate-300 font-bold text-xs uppercase tracking-wider transition">
+                Cancel
+            </button>
+            <button onclick="stopAndProcessAudio()" class="flex-2 w-2/3 py-3.5 rounded-xl bg-gradient-to-r from-brand-accent to-amber-300 hover:brightness-105 text-brand-dark font-extrabold text-xs uppercase tracking-wider transition shadow-lg shadow-brand-accent/20 flex items-center justify-center gap-2">
+                <i class="fas fa-check-circle text-base"></i>
+                <span>Finish & Structure</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- PROCESSING PROGRESS MODAL -->
+    <div id="processingModal" class="fixed inset-0 z-50 bg-[#070F1E]/90 backdrop-blur-md hidden flex items-center justify-center p-6">
+        <div class="glass-card rounded-2xl p-6 max-w-sm w-full text-center space-y-4 border border-brand-accent/30 shadow-2xl">
+            <div class="w-14 h-14 rounded-full bg-brand-accent/10 border border-brand-accent/30 mx-auto flex items-center justify-center text-brand-accent text-2xl animate-spin">
+                <i class="fas fa-atom"></i>
+            </div>
+            <div>
+                <h3 class="font-extrabold text-base text-white mb-1">TRUTHMODE Engine</h3>
+                <p id="processingStatusText" class="text-xs text-brand-accent font-medium">Extracting transcript & cognitive insights...</p>
+            </div>
+            <p class="text-[11px] text-slate-400">Powered by Gemini multimodal audio reasoning.</p>
+        </div>
+    </div>
+
+    <!-- THOUGHT DETAIL MODAL -->
+    <div id="thoughtDetailModal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-md hidden flex items-end sm:items-center justify-center p-0 sm:p-4">
+        <div class="bg-brand-navy border border-white/10 rounded-t-3xl sm:rounded-2xl max-w-lg w-full max-h-[90vh] flex flex-col shadow-2xl overflow-hidden animate-slide-up">
+            
+            <!-- Detail Header -->
+            <div class="p-4 border-b border-white/10 flex items-center justify-between bg-brand-dark/50">
+                <div class="flex items-center gap-2">
+                    <span id="modalCategoryBadge" class="px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-brand-accent text-brand-dark">IDEA</span>
+                    <span id="modalDate" class="text-xs text-brand-muted font-mono">Just now</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button onclick="copyModalContent()" title="Copy to Clipboard" class="w-8 h-8 rounded-lg bg-white/5 text-slate-300 hover:text-white flex items-center justify-center text-xs transition">
+                        <i class="fas fa-copy"></i>
+                    </button>
+                    <button onclick="deleteCurrentModalThought()" title="Delete Thought" class="w-8 h-8 rounded-lg bg-white/5 text-slate-300 hover:text-red-400 flex items-center justify-center text-xs transition">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                    <button onclick="closeDetailModal()" class="w-8 h-8 rounded-lg bg-white/5 text-slate-300 hover:text-white flex items-center justify-center text-xs transition">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Detail Body (Scrollable) -->
+            <div class="p-5 overflow-y-auto space-y-4 flex-1">
+                
+                <!-- Audio Player (if recorded audio exists) -->
+                <div id="modalAudioSection" class="hidden bg-black/40 rounded-xl p-3 border border-white/10">
+                    <div class="text-[11px] font-semibold text-brand-muted uppercase mb-1.5 flex items-center gap-1.5">
+                        <i class="fas fa-headphones text-brand-accent"></i>
+                        <span>Original Voice Audio</span>
+                    </div>
+                    <audio id="modalAudioPlayer" controls class="w-full h-8"></audio>
+                </div>
+
+                <!-- TRUTH SCORE™ Showcase -->
+                <div class="p-4 rounded-xl bg-gradient-to-br from-brand-accent/15 via-white/5 to-transparent border border-brand-accent/30 space-y-2.5">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs font-black tracking-wider text-brand-accent uppercase">TRUTH SCORE™</span>
+                            <span class="text-[10px] text-slate-400 font-medium">Content Potential</span>
+                        </div>
+                        <div class="flex items-baseline gap-1">
+                            <span id="modalTruthScore" class="text-2xl font-black text-brand-accent">85</span>
+                            <span class="text-xs text-brand-muted">/100</span>
+                        </div>
+                    </div>
+
+                    <!-- Breakdown Meters -->
+                    <div class="grid grid-cols-2 gap-2 pt-1 text-[11px]">
+                        <div>
+                            <div class="flex justify-between text-slate-400 mb-0.5">
+                                <span>Originality</span>
+                                <span id="meterOriginality" class="font-bold text-white">85%</span>
+                            </div>
+                            <div class="w-full bg-white/10 h-1.5 rounded-full overflow-hidden">
+                                <div id="barOriginality" class="bg-brand-accent h-full w-[85%]"></div>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="flex justify-between text-slate-400 mb-0.5">
+                                <span>Specificity</span>
+                                <span id="meterSpecificity" class="font-bold text-white">80%</span>
+                            </div>
+                            <div class="w-full bg-white/10 h-1.5 rounded-full overflow-hidden">
+                                <div id="barSpecificity" class="bg-brand-accent h-full w-[80%]"></div>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="flex justify-between text-slate-400 mb-0.5">
+                                <span>Point of View</span>
+                                <span id="meterPOV" class="font-bold text-white">90%</span>
+                            </div>
+                            <div class="w-full bg-white/10 h-1.5 rounded-full overflow-hidden">
+                                <div id="barPOV" class="bg-brand-accent h-full w-[90%]"></div>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="flex justify-between text-slate-400 mb-0.5">
+                                <span>Reusability</span>
+                                <span id="meterReusability" class="font-bold text-white">85%</span>
+                            </div>
+                            <div class="w-full bg-white/10 h-1.5 rounded-full overflow-hidden">
+                                <div id="barReusability" class="bg-brand-accent h-full w-[85%]"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <p id="modalTruthRationale" class="text-xs text-slate-300 italic pt-1 border-t border-white/10 leading-relaxed"></p>
+                </div>
+
+                <!-- Core Insight Callout -->
+                <div class="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/20 space-y-1">
+                    <div class="text-[10px] font-bold uppercase tracking-wider text-amber-400 flex items-center gap-1.5">
+                        <i class="fas fa-bullseye"></i>
+                        Core Insight
+                    </div>
+                    <p id="modalCoreInsight" class="text-xs font-semibold text-white leading-relaxed"></p>
+                </div>
+
+                <!-- Summary -->
+                <div class="space-y-1">
+                    <h4 class="text-[11px] font-bold uppercase tracking-wider text-brand-muted">Summary</h4>
+                    <p id="modalSummary" class="text-xs text-slate-200 leading-relaxed"></p>
+                </div>
+
+                <!-- Topic Tags -->
+                <div class="space-y-1.5">
+                    <h4 class="text-[11px] font-bold uppercase tracking-wider text-brand-muted">Topics</h4>
+                    <div id="modalTopicsList" class="flex flex-wrap gap-1.5"></div>
+                </div>
+
+                <!-- Full Transcript -->
+                <div class="space-y-1 pt-2 border-t border-white/10">
+                    <h4 class="text-[11px] font-bold uppercase tracking-wider text-brand-muted flex items-center justify-between">
+                        <span>Original Spoken Content / Transcript</span>
+                    </h4>
+                    <div id="modalTranscript" class="text-xs text-slate-300 bg-black/30 p-3 rounded-xl border border-white/5 font-mono whitespace-pre-wrap leading-relaxed"></div>
+                </div>
+
+            </div>
+
+            <!-- Detail Footer -->
+            <div class="p-3 bg-brand-dark/80 border-t border-white/10 flex justify-end">
+                <button onclick="closeDetailModal()" class="px-5 py-2 rounded-xl bg-brand-accent text-brand-dark font-bold text-xs hover:brightness-105 transition">
+                    Done
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bottom Navigation Bar (Mobile Native Style) -->
+    <nav class="fixed bottom-0 left-0 right-0 z-40 bg-brand-dark/95 backdrop-blur-lg border-t border-white/10 safe-bottom">
+        <div class="max-w-xl mx-auto flex items-center justify-around py-2">
+            <button onclick="switchTab('capture')" id="nav-capture" class="nav-btn active flex flex-col items-center py-1 px-3 text-brand-accent transition">
+                <i class="fas fa-microphone text-base mb-1"></i>
+                <span class="text-[10px] font-bold tracking-wider">CAPTURE</span>
+            </button>
+            <button onclick="switchTab('thoughts')" id="nav-thoughts" class="nav-btn flex flex-col items-center py-1 px-3 text-brand-muted hover:text-white transition">
+                <i class="fas fa-layer-group text-base mb-1"></i>
+                <span class="text-[10px] font-bold tracking-wider">THOUGHTS</span>
+            </button>
+            <button onclick="switchTab('discover')" id="nav-discover" class="nav-btn flex flex-col items-center py-1 px-3 text-brand-muted hover:text-white transition">
+                <i class="fas fa-compass text-base mb-1"></i>
+                <span class="text-[10px] font-bold tracking-wider">DISCOVER</span>
+            </button>
+            <button onclick="switchTab('settings')" id="nav-settings" class="nav-btn flex flex-col items-center py-1 px-3 text-brand-muted hover:text-white transition">
+                <i class="fas fa-gear text-base mb-1"></i>
+                <span class="text-[10px] font-bold tracking-wider">SETTINGS</span>
+            </button>
+        </div>
+    </nav>
+
+    <!-- IndexedDB & App Core Logic -->
+    <script>
+        // ==========================================
+        // 1. IndexedDB ENGINE INITIALIZATION
+        // ==========================================
+        const DB_NAME = 'TRUTHMODE_DB';
+        const DB_VERSION = 1;
+        const STORE_THOUGHTS = 'thoughts';
+        let dbInstance = null;
+
+        function openDatabase() {
+            return new Promise((resolve, reject) => {
+                if (dbInstance) return resolve(dbInstance);
+                const req = indexedDB.open(DB_NAME, DB_VERSION);
+                req.onupgradeneeded = (e) => {
+                    const db = e.target.result;
+                    if (!db.objectStoreNames.contains(STORE_THOUGHTS)) {
+                        const store = db.createObjectStore(STORE_THOUGHTS, { keyPath: 'id' });
+                        store.createIndex('createdAt', 'createdAt', { unique: false });
+                        store.createIndex('category', 'category', { unique: false });
+                        store.createIndex('truthScore', 'truthScore', { unique: false });
+                    }
+                };
+                req.onsuccess = (e) => {
+                    dbInstance = e.target.result;
+                    resolve(dbInstance);
+                };
+                req.onerror = (e) => reject(e.target.error);
+            });
+        }
+
+        async function dbSaveThought(thought) {
+            const db = await openDatabase();
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction([STORE_THOUGHTS], 'readwrite');
+                const store = tx.objectStore(STORE_THOUGHTS);
+                const req = store.put(thought);
+                req.onsuccess = () => resolve(thought);
+                req.onerror = (e) => reject(e.target.error);
+            });
+        }
+
+        async function dbGetAllThoughts() {
+            const db = await openDatabase();
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction([STORE_THOUGHTS], 'readonly');
+                const store = tx.objectStore(STORE_THOUGHTS);
+                const req = store.getAll();
+                req.onsuccess = () => resolve(req.result || []);
+                req.onerror = (e) => reject(e.target.error);
+            });
+        }
+
+        async function dbDeleteThought(id) {
+            const db = await openDatabase();
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction([STORE_THOUGHTS], 'readwrite');
+                const store = tx.objectStore(STORE_THOUGHTS);
+                const req = store.delete(id);
+                req.onsuccess = () => resolve();
+                req.onerror = (e) => reject(e.target.error);
+            });
+        }
+
+        async function dbClearAll() {
+            const db = await openDatabase();
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction([STORE_THOUGHTS], 'readwrite');
+                const store = tx.objectStore(STORE_THOUGHTS);
+                const req = store.clear();
+                req.onsuccess = () => resolve();
+                req.onerror = (e) => reject(e.target.error);
+            });
+        }
+
+        // ==========================================
+        // 2. STATE & APPLICATION CONTEXT
+        // ==========================================
+        let allThoughts = [];
+        let currentTab = 'capture';
+        let activeCategoryFilter = 'ALL';
+        let currentModalThoughtId = null;
+
+        // Custom API Key
+        let customApiKey = localStorage.getItem('truthmode_custom_api_key') || '';
+
+        // Media Recording
+        let mediaRecorder = null;
+        let audioChunks = [];
+        let recordingInterval = null;
+        let recordingSeconds = 0;
+        let recordedAudioBlob = null;
+        let recordedAudioMime = 'audio/webm';
+
+        // ==========================================
+        // 3. TAB NAVIGATION
+        // ==========================================
+        function switchTab(tabId) {
+            currentTab = tabId;
+            ['capture', 'thoughts', 'discover', 'settings'].forEach(t => {
+                const view = document.getElementById(`view-${t}`);
+                const nav = document.getElementById(`nav-${t}`);
+                if (t === tabId) {
+                    view.classList.remove('hidden');
+                    nav.classList.add('active', 'text-brand-accent');
+                    nav.classList.remove('text-brand-muted');
+                } else {
+                    view.classList.add('hidden');
+                    nav.classList.remove('active', 'text-brand-accent');
+                    nav.classList.add('text-brand-muted');
+                }
+            });
+
+            if (tabId === 'thoughts') {
+                renderThoughtsLibrary();
+            } else if (tabId === 'discover') {
+                renderDiscoverTopics();
+            } else if (tabId === 'capture') {
+                updateDashboardStats();
+                renderRecentThoughts();
+            } else if (tabId === 'settings') {
+                document.getElementById('settingsTotalCount').textContent = allThoughts.length;
+            }
+        }
+
+        // ==========================================
+        // 4. AUDIO CAPTURE & RECORDING LOGIC
+        // ==========================================
+        async function startAudioCapture() {
+            try {
+                if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                    alert("Microphone access is not supported on this browser. Try Chrome or Safari.");
+                    return;
+                }
+
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                
+                // MimeType detection
+                let options = { mimeType: 'audio/webm;codecs=opus' };
+                if (!MediaRecorder.isTypeSupported(options.mimeType)) {
+                    if (MediaRecorder.isTypeSupported('audio/mp4')) options = { mimeType: 'audio/mp4' };
+                    else if (MediaRecorder.isTypeSupported('audio/webm')) options = { mimeType: 'audio/webm' };
+                    else options = {};
+                }
+
+                recordedAudioMime = options.mimeType || 'audio/webm';
+                mediaRecorder = new MediaRecorder(stream, options);
+                audioChunks = [];
+
+                mediaRecorder.ondataavailable = (e) => {
+                    if (e.data && e.data.size > 0) audioChunks.push(e.data);
+                };
+
+                mediaRecorder.start(250); // 250ms chunks
+
+                // Show active recording modal
+                document.getElementById('recordingOverlay').classList.remove('hidden');
+                recordingSeconds = 0;
+                document.getElementById('recordingTimer').textContent = "00:00";
+                
+                clearInterval(recordingInterval);
+                recordingInterval = setInterval(() => {
+                    recordingSeconds++;
+                    const mins = String(Math.floor(recordingSeconds / 60)).padStart(2, '0');
+                    const secs = String(recordingSeconds % 60).padStart(2, '0');
+                    document.getElementById('recordingTimer').textContent = `${mins}:${secs}`;
+                }, 1000);
+
+            } catch (err) {
+                console.error("Mic error:", err);
+                alert("Microphone access denied or unavailable: " + err.message);
+            }
+        }
+
+        function cancelAudioCapture() {
+            clearInterval(recordingInterval);
+            if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+                mediaRecorder.stop();
+                mediaRecorder.stream.getTracks().forEach(t => t.stop());
+            }
+            audioChunks = [];
+            document.getElementById('recordingOverlay').classList.add('hidden');
+        }
+
+        async function stopAndProcessAudio() {
+            clearInterval(recordingInterval);
+            if (!mediaRecorder) return;
+
+            // Wait for final chunks
+            mediaRecorder.onstop = async () => {
+                mediaRecorder.stream.getTracks().forEach(t => t.stop());
+                recordedAudioBlob = new Blob(audioChunks, { type: recordedAudioMime });
+                document.getElementById('recordingOverlay').classList.add('hidden');
+                
+                if (recordedAudioBlob.size < 1000) {
+                    alert("Recording too short. Speak a thought and try again.");
+                    return;
+                }
+
+                await processAudioBlob(recordedAudioBlob, recordedAudioMime);
+            };
+
+            mediaRecorder.stop();
+        }
+
+        // ==========================================
+        // 5. GEMINI MULTIMODAL EXTRACTION ENGINE
+        // ==========================================
+        function blobToBase64(blob) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onloadend = () => {
+                    const base64data = reader.result.split(',')[1];
+                    resolve(base64data);
+                };
+                reader.onerror = reject;
+            });
+        }
+
+        const SYSTEM_PROMPT = `You are the intelligence engine of TRUTHMODE, a voice-first personal thinking and content system.
+Analyze the user's voice memo. Perform exact word-for-word transcription, extract cognitive taxonomy, summarize the core insight, and evaluate the proprietary TRUTH SCORE™.
+
+Category Taxonomy (choose exactly 1):
+- IDEA: New concepts, possibilities, or hypotheses.
+- INSIGHT: Core realizations, non-obvious observations, or lessons learned.
+- STORY: Personal anecdotes, experiences, or situational narratives.
+- PROBLEM: Bottlenecks, pain points, or frustrations encountered.
+- SOLUTION: Practical fixes, workflows, or answers to known issues.
+- OPINION: Distinct personal viewpoints, stances, or critiques.
+- QUESTION: Open inquiries, areas needing research or exploration.
+- LESSON: Retrospective learning from prior actions.
+
+TRUTH SCORE™ Evaluation (0 to 100):
+Evaluate content potential based on 4 criteria (0-100 each):
+- Originality: Unique perspective vs generic common knowledge.
+- Specificity: Concrete real details vs vague abstractions.
+- Point of View: Distinct personal angle and stance.
+- Reusability: Potential to seed high-value posts, articles, or frameworks.
+Calculate the overall truth_score as the balanced average.
+
+Output strictly valid JSON with no markdown wrapping:
+{
+  "transcript": "Exact word-for-word transcript of the audio.",
+  "summary": "Crisp 1-2 sentence executive summary.",
+  "core_insight": "The single most valuable idea or takeaway underneath the words.",
+  "category": "IDEA" | "INSIGHT" | "STORY" | "PROBLEM" | "SOLUTION" | "OPINION" | "QUESTION" | "LESSON",
+  "topics": ["Tag1", "Tag2", "Tag3"],
+  "truth_score": 85,
+  "truth_score_breakdown": {
+    "originality": 88,
+    "specificity": 82,
+    "point_of_view": 90,
+    "reusability": 80
+  },
+  "truth_score_rationale": "Clear real-world experience with specific problem-solving potential."
+}`;
+
+        async function callGemini(payload) {
+            const apiKey = customApiKey || "";
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (!response.ok) {
+                const errJson = await response.json().catch(() => ({}));
+                throw new Error(errJson.error?.message || `HTTP ${response.status}`);
+            }
+
+            const data = await response.json();
+            const textResponse = data.candidates?.[0]?.content?.parts?.[0]?.text;
+            if (!textResponse) throw new Error("No response generated from Gemini.");
+
+            // Clean markdown block wrappers if present
+            const cleanJson = textResponse.replace(/```json/gi, '').replace(/```/g, '').trim();
+            try {
+                return JSON.parse(cleanJson);
+            } catch (pErr) {
+                const match = cleanJson.match(/\{[\s\S]*\}/);
+                if (match) return JSON.parse(match[0]);
+                throw new Error("Unable to parse structured JSON from model: " + textResponse);
+            }
+        }
+
+        async function processAudioBlob(blob, mimeType) {
+            showProcessingModal("Uploading & transcribing audio with Gemini...");
+            try {
+                const base64Audio = await blobToBase64(blob);
+
+                const payload = {
+                    contents: [{
+                        parts: [
+                            {
+                                inline_data: {
+                                    mime_type: mimeType.split(';')[0],
+                                    data: base64Audio
+                                }
+                            },
+                            {
+                                text: SYSTEM_PROMPT
+                            }
+                        ]
+                    }],
+                    generationConfig: {
+                        temperature: 0.2
+                    }
+                };
+
+                const structured = await callGemini(payload);
+                await saveAndDisplayNewThought(structured, blob);
+
+            } catch (err) {
+                console.error(err);
+                alert("Processing failed: " + err.message);
+            } finally {
+                hideProcessingModal();
+            }
+        }
+
+        async function processTypedThought() {
+            const input = document.getElementById('typedThoughtInput');
+            const text = input.value.trim();
+            if (!text) return;
+
+            showProcessingModal("Analyzing thought with Gemini...");
+            try {
+                const payload = {
+                    contents: [{
+                        parts: [
+                            {
+                                text: `${SYSTEM_PROMPT}
+
+User Input Text:
+"${text}"`
+                            }
+                        ]
+                    }],
+                    generationConfig: {
+                        temperature: 0.2
+                    }
+                };
+
+                const structured = await callGemini(payload);
+                await saveAndDisplayNewThought(structured, null);
+                input.value = '';
+                toggleTextDrawer();
+
+            } catch (err) {
+                console.error(err);
+                alert("Analysis failed: " + err.message);
+            } finally {
+                hideProcessingModal();
+            }
+        }
+
+        async function saveAndDisplayNewThought(extracted, audioBlob = null) {
+            const newThought = {
+                id: 'tm_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7),
+                createdAt: new Date().toISOString(),
+                audioBlob: audioBlob,
+                audioMimeType: recordedAudioMime,
+                transcript: extracted.transcript || "",
+                summary: extracted.summary || "Summary not provided.",
+                coreInsight: extracted.core_insight || "Insight not provided.",
+                category: extracted.category || "IDEA",
+                topics: Array.isArray(extracted.topics) ? extracted.topics : [],
+                truthScore: typeof extracted.truth_score === 'number' ? extracted.truth_score : 75,
+                truthScoreBreakdown: extracted.truth_score_breakdown || {
+                    originality: 75,
+                    specificity: 75,
+                    point_of_view: 75,
+                    reusability: 75
+                },
+                truthScoreRationale: extracted.truth_score_rationale || "Categorized based on semantic context."
+            };
+
+            await dbSaveThought(newThought);
+            allThoughts.unshift(newThought);
+
+            updateDashboardStats();
+            renderRecentThoughts();
+            openThoughtDetail(newThought.id);
+        }
+
+        function showProcessingModal(statusText) {
+            document.getElementById('processingStatusText').textContent = statusText;
+            document.getElementById('processingModal').classList.remove('hidden');
+        }
+
+        function hideProcessingModal() {
+            document.getElementById('processingModal').classList.add('hidden');
+        }
+
+        function toggleTextDrawer() {
+            const drawer = document.getElementById('textInputDrawer');
+            drawer.classList.toggle('hidden');
+            if (!drawer.classList.contains('hidden')) {
+                document.getElementById('typedThoughtInput').focus();
+            }
+        }
+
+        // ==========================================
+        // 6. DASHBOARD & RECENT THOUGHTS
+        // ==========================================
+        function updateDashboardStats() {
+            const now = new Date();
+            const todayDateStr = now.toISOString().split('T')[0];
+            
+            const todayThoughts = allThoughts.filter(t => t.createdAt && t.createdAt.startsWith(todayDateStr));
+            
+            document.getElementById('statTotalToday').textContent = todayThoughts.length;
+            
+            const insightsCount = todayThoughts.filter(t => t.category === 'INSIGHT' || t.category === 'IDEA').length;
+            document.getElementById('statInsightsToday').textContent = insightsCount;
+
+            if (todayThoughts.length > 0) {
+                const totalScore = todayThoughts.reduce((acc, curr) => acc + (curr.truthScore || 0), 0);
+                const avg = Math.round(totalScore / todayThoughts.length);
+                document.getElementById('statAvgTruthScore').textContent = avg;
+            } else {
+                document.getElementById('statAvgTruthScore').textContent = '--';
+            }
+        }
+
+        function renderRecentThoughts() {
+            const container = document.getElementById('recentThoughtsList');
+            const recent = allThoughts.slice(0, 5);
+
+            if (recent.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-8 text-brand-muted text-xs flex flex-col items-center justify-center space-y-2.5">
+                        <p class="italic">No thoughts captured yet. Tap the microphone to capture your first!</p>
+                        <button onclick="loadSampleThoughts()" class="px-3 py-1.5 rounded-lg bg-brand-accent/15 border border-brand-accent/30 text-brand-accent text-xs font-semibold hover:bg-brand-accent/25 transition">
+                            <i class="fas fa-sparkles mr-1"></i> Load 3 Sample Thoughts
+                        </button>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = recent.map(t => createThoughtCardHtml(t)).join('');
+        }
+
+        function createThoughtCardHtml(t) {
+            const timeAgo = formatTimeAgo(new Date(t.createdAt));
+            const catBadgeClass = getCategoryBadgeClass(t.category);
+            
+            return `
+                <div onclick="openThoughtDetail('${t.id}')" class="glass-card glass-card-hover rounded-xl p-3.5 border border-white/5 cursor-pointer transition">
+                    <div class="flex items-center justify-between mb-2">
+                        <div class="flex items-center gap-2">
+                            <span class="${catBadgeClass} px-2 py-0.5 rounded text-[10px] font-extrabold uppercase tracking-wider">${t.category}</span>
+                            <span class="text-[11px] text-brand-muted font-mono">${timeAgo}</span>
+                        </div>
+                        <div class="flex items-center gap-1 bg-brand-accent/15 border border-brand-accent/30 px-2 py-0.5 rounded-full">
+                            <i class="fas fa-bolt text-[9px] text-brand-accent"></i>
+                            <span class="text-xs font-black text-brand-accent">${t.truthScore || 70}</span>
+                        </div>
+                    </div>
+                    <p class="text-xs font-semibold text-white line-clamp-2 leading-relaxed mb-2">${escapeHtml(t.summary)}</p>
+                    <div class="flex items-center justify-between text-[11px] text-slate-400">
+                        <div class="flex items-center gap-1.5 truncate mr-2">
+                            ${(t.topics || []).slice(0, 3).map(tag => `<span class="bg-white/5 px-1.5 py-0.5 rounded text-[10px] text-slate-300">#${escapeHtml(tag)}</span>`).join('')}
+                        </div>
+                        ${t.audioBlob ? `<span class="text-[10px] text-brand-accent"><i class="fas fa-microphone"></i> Audio</span>` : ''}
+                    </div>
+                </div>
+            `;
+        }
+
+        function getCategoryBadgeClass(cat) {
+            switch(cat) {
+                case 'IDEA': return 'bg-yellow-400/20 text-yellow-300 border border-yellow-400/30';
+                case 'INSIGHT': return 'bg-cyan-400/20 text-cyan-300 border border-cyan-400/30';
+                case 'STORY': return 'bg-purple-400/20 text-purple-300 border border-purple-400/30';
+                case 'PROBLEM': return 'bg-rose-400/20 text-rose-300 border border-rose-400/30';
+                case 'SOLUTION': return 'bg-emerald-400/20 text-emerald-300 border border-emerald-400/30';
+                case 'OPINION': return 'bg-indigo-400/20 text-indigo-300 border border-indigo-400/30';
+                case 'LESSON': return 'bg-blue-400/20 text-blue-300 border border-blue-400/30';
+                case 'QUESTION': return 'bg-amber-400/20 text-amber-300 border border-amber-400/30';
+                default: return 'bg-slate-400/20 text-slate-300 border border-slate-400/30';
+            }
+        }
+
+        // ==========================================
+        // 7. THOUGHTS LIBRARY (SEARCH & FILTERS)
+        // ==========================================
+        function filterCategory(cat) {
+            activeCategoryFilter = cat;
+            document.querySelectorAll('.cat-pill').forEach(btn => {
+                if (btn.dataset.cat === cat) {
+                    btn.classList.add('active', 'bg-brand-accent', 'text-brand-dark');
+                    btn.classList.remove('bg-white/5', 'text-slate-300');
+                } else {
+                    btn.classList.remove('active', 'bg-brand-accent', 'text-brand-dark');
+                    btn.classList.add('bg-white/5', 'text-slate-300');
+                }
+            });
+            renderThoughtsLibrary();
+        }
+
+        function handleLibrarySearch() {
+            const val = document.getElementById('librarySearchInput').value.trim();
+            const clearBtn = document.getElementById('clearSearchBtn');
+            if (val) clearBtn.classList.remove('hidden');
+            else clearBtn.classList.add('hidden');
+            renderThoughtsLibrary();
+        }
+
+        function clearLibrarySearch() {
+            document.getElementById('librarySearchInput').value = '';
+            document.getElementById('clearSearchBtn').classList.add('hidden');
+            renderThoughtsLibrary();
+        }
+
+        function renderThoughtsLibrary() {
+            const container = document.getElementById('libraryContainer');
+            const searchVal = document.getElementById('librarySearchInput').value.toLowerCase().trim();
+            const sortBy = document.getElementById('sortSelect').value;
+
+            // Update category count
+            document.getElementById('catCountAll').textContent = allThoughts.length;
+
+            let filtered = allThoughts.filter(t => {
+                const matchCategory = (activeCategoryFilter === 'ALL' || t.category === activeCategoryFilter);
+                if (!matchCategory) return false;
+
+                if (!searchVal) return true;
+                const inTranscript = (t.transcript || '').toLowerCase().includes(searchVal);
+                const inSummary = (t.summary || '').toLowerCase().includes(searchVal);
+                const inInsight = (t.coreInsight || '').toLowerCase().includes(searchVal);
+                const inTopics = (t.topics || []).some(tag => tag.toLowerCase().includes(searchVal));
+
+                return inTranscript || inSummary || inInsight || inTopics;
+            });
+
+            // Sorting
+            if (sortBy === 'newest') {
+                filtered.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+            } else if (sortBy === 'oldest') {
+                filtered.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+            } else if (sortBy === 'highest_score') {
+                filtered.sort((a, b) => (b.truthScore || 0) - (a.truthScore || 0));
+            }
+
+            document.getElementById('filteredResultsLabel').textContent = `Showing ${filtered.length} of ${allThoughts.length} thoughts`;
+
+            if (filtered.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-12 glass-card rounded-2xl p-6 border border-white/5">
+                        <i class="fas fa-filter text-brand-muted text-2xl mb-2"></i>
+                        <p class="text-xs text-brand-muted">No thoughts match your current filter or search criteria.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = filtered.map(t => createThoughtCardHtml(t)).join('');
+        }
+
+        // ==========================================
+        // 8. THOUGHT DETAIL MODAL
+        // ==========================================
+        function openThoughtDetail(id) {
+            const thought = allThoughts.find(t => t.id === id);
+            if (!thought) return;
+            currentModalThoughtId = id;
+
+            document.getElementById('modalCategoryBadge').textContent = thought.category;
+            document.getElementById('modalCategoryBadge').className = `px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-wider ${getCategoryBadgeClass(thought.category)}`;
+            
+            document.getElementById('modalDate').textContent = new Date(thought.createdAt).toLocaleString([], {
+                month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+            });
+
+            document.getElementById('modalTruthScore').textContent = thought.truthScore || 75;
+            document.getElementById('modalTruthRationale').textContent = thought.truthScoreRationale || "Strong originality and actionable value.";
+
+            const breakdown = thought.truthScoreBreakdown || { originality: 80, specificity: 80, point_of_view: 80, reusability: 80 };
+            document.getElementById('meterOriginality').textContent = `${breakdown.originality || 80}%`;
+            document.getElementById('barOriginality').style.width = `${breakdown.originality || 80}%`;
+            
+            document.getElementById('meterSpecificity').textContent = `${breakdown.specificity || 80}%`;
+            document.getElementById('barSpecificity').style.width = `${breakdown.specificity || 80}%`;
+            
+            document.getElementById('meterPOV').textContent = `${breakdown.point_of_view || 80}%`;
+            document.getElementById('barPOV').style.width = `${breakdown.point_of_view || 80}%`;
+            
+            document.getElementById('meterReusability').textContent = `${breakdown.reusability || 80}%`;
+            document.getElementById('barReusability').style.width = `${breakdown.reusability || 80}%`;
+
+            document.getElementById('modalCoreInsight').textContent = thought.coreInsight || "No core insight extracted.";
+            document.getElementById('modalSummary').textContent = thought.summary || "";
+            document.getElementById('modalTranscript').textContent = thought.transcript || "(No spoken transcript recorded)";
+
+            // Topics list
+            const topicsContainer = document.getElementById('modalTopicsList');
+            if (thought.topics && thought.topics.length > 0) {
+                topicsContainer.innerHTML = thought.topics.map(tag => `
+                    <span class="px-2 py-0.5 rounded-md bg-white/10 text-xs text-brand-accent font-medium">#${escapeHtml(tag)}</span>
+                `).join('');
+            } else {
+                topicsContainer.innerHTML = `<span class="text-xs text-slate-500 italic">None</span>`;
+            }
+
+            // Audio Player
+            const audioSec = document.getElementById('modalAudioSection');
+            const audioPlayer = document.getElementById('modalAudioPlayer');
+            if (thought.audioBlob) {
+                audioSec.classList.remove('hidden');
+                audioPlayer.src = URL.createObjectURL(thought.audioBlob);
+            } else {
+                audioSec.classList.add('hidden');
+                audioPlayer.src = '';
+            }
+
+            document.getElementById('thoughtDetailModal').classList.remove('hidden');
+        }
+
+        function closeDetailModal() {
+            const audioPlayer = document.getElementById('modalAudioPlayer');
+            if (audioPlayer) audioPlayer.pause();
+            document.getElementById('thoughtDetailModal').classList.add('hidden');
+            currentModalThoughtId = null;
+        }
+
+        async function deleteCurrentModalThought() {
+            if (!currentModalThoughtId) return;
+            if (!confirm("Are you sure you want to delete this thought from your personal dataset?")) return;
+            
+            await dbDeleteThought(currentModalThoughtId);
+            allThoughts = allThoughts.filter(t => t.id !== currentModalThoughtId);
+            
+            closeDetailModal();
+            updateDashboardStats();
+            renderRecentThoughts();
+            if (currentTab === 'thoughts') renderThoughtsLibrary();
+        }
+
+        function copyModalContent() {
+            const thought = allThoughts.find(t => t.id === currentModalThoughtId);
+            if (!thought) return;
+
+            const text = `TRUTHMODE Thought [${thought.category}] - TRUTH SCORE: ${thought.truthScore}/100
+` +
+                         `Summary: ${thought.summary}
+` +
+                         `Core Insight: ${thought.coreInsight}
+
+` +
+                         `Transcript:
+${thought.transcript}`;
+
+            navigator.clipboard.writeText(text).then(() => {
+                alert("Thought copied to clipboard!");
+            });
+        }
+
+        // ==========================================
+        // 9. DISCOVER & TOPIC CLUSTERING
+        // ==========================================
+        function renderDiscoverTopics() {
+            const cloud = document.getElementById('topicsCloud');
+            const counts = {};
+            allThoughts.forEach(t => {
+                (t.topics || []).forEach(tag => {
+                    counts[tag] = (counts[tag] || 0) + 1;
+                });
+            });
+
+            const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+            if (sorted.length === 0) {
+                cloud.innerHTML = `<span class="text-xs text-brand-muted italic">Log more thoughts to see topic clusters emerge.</span>`;
+                return;
+            }
+
+            cloud.innerHTML = sorted.map(([tag, count]) => `
+                <button onclick="searchTopicInLibrary('${tag}')" class="px-2.5 py-1 rounded-lg bg-white/5 hover:bg-brand-accent/20 hover:text-brand-accent text-slate-300 text-xs font-medium border border-white/10 transition">
+                    #${escapeHtml(tag)} <span class="text-brand-accent font-bold ml-1">${count}</span>
+                </button>
+            `).join('');
+        }
+
+        function searchTopicInLibrary(tag) {
+            switchTab('thoughts');
+            document.getElementById('librarySearchInput').value = tag;
+            handleLibrarySearch();
+        }
+
+        async function synthesizeDiscoverClusters() {
+            if (allThoughts.length < 2) {
+                alert("Please log at least 2 or 3 thoughts before synthesizing pattern intelligence.");
+                return;
+            }
+
+            const btn = document.getElementById('synthesizeBtn');
+            const originalHtml = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Synthesizing Connections...`;
+
+            try {
+                const thoughtContext = allThoughts.slice(0, 30).map((t, idx) => 
+                    `[Thought #${idx+1}] Category: ${t.category} | Truth Score: ${t.truthScore}
+` +
+                    `Summary: ${t.summary}
+` +
+                    `Core Insight: ${t.coreInsight}
+` +
+                    `Topics: ${(t.topics || []).join(', ')}
+`
+                ).join('\n---\n');
+
+                const prompt = `You are TRUTHMODE's Pattern Discovery & Content Intelligence Engine.
+Analyze the user's accumulated thoughts dataset below. Identify:
+1. RECURRING THEMES: Topics or problems appearing repeatedly.
+2. CONTENT CLUSTERS: How 2-4 individual thoughts connect into a larger article, video, framework, or newsletter.
+3. UNFINISHED HYPOTHESES: High-potential thoughts that deserve deeper exploration.
+
+User Dataset:
+${thoughtContext}
+
+Return structured HTML with clean markup (<h3>, <p>, <ul>, <li>, <strong>) without markdown code blocks.`;
+
+                const payload = {
+                    contents: [{ parts: [{ text: prompt }] }],
+                    generationConfig: { temperature: 0.3 }
+                };
+
+                const apiKey = customApiKey || "";
+                const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+
+                const resp = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!resp.ok) throw new Error("Synthesis API call failed.");
+                const resData = await resp.json();
+                const htmlText = resData.candidates?.[0]?.content?.parts?.[0]?.text || "No synthesis generated.";
+                
+                const cleanHtml = htmlText.replace(/```html/gi, '').replace(/```/g, '').trim();
+                document.getElementById('discoverContent').innerHTML = cleanHtml;
+                document.getElementById('discoverResultsBox').classList.remove('hidden');
+
+            } catch (err) {
+                alert("Pattern synthesis failed: " + err.message);
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = originalHtml;
+            }
+        }
+
+        function copyDiscoverText() {
+            const content = document.getElementById('discoverContent').innerText;
+            navigator.clipboard.writeText(content).then(() => alert("Synthesized insights copied!"));
+        }
+
+        // ==========================================
+        // 10. SETTINGS & EXPORT / DATA PORTABILITY
+        // ==========================================
+        function saveCustomApiKey() {
+            const key = document.getElementById('customApiKeyInput').value.trim();
+            customApiKey = key;
+            if (key) {
+                localStorage.setItem('truthmode_custom_api_key', key);
+                document.getElementById('apiStatusLabel').textContent = "Custom Key";
+                alert("Custom Google AI Studio key saved!");
+            } else {
+                localStorage.removeItem('truthmode_custom_api_key');
+                document.getElementById('apiStatusLabel').textContent = "Gemini Live";
+                alert("Reset to auto environment key.");
+            }
+        }
+
+        function clearCustomApiKey() {
+            customApiKey = '';
+            localStorage.removeItem('truthmode_custom_api_key');
+            document.getElementById('customApiKeyInput').value = '';
+            document.getElementById('apiStatusLabel').textContent = "Gemini Live";
+            alert("Reset to auto environment key.");
+        }
+
+        function exportAllAsMarkdown() {
+            if (allThoughts.length === 0) {
+                alert("No thoughts logged to export.");
+                return;
+            }
+
+            let md = `# TRUTHMODE Personal Thinking Dataset Export\n`;
+            md += `*Exported on: ${new Date().toLocaleString()}*\n\n---\n\n`;
+
+            allThoughts.forEach((t, i) => {
+                md += `## Thought #${i+1}: ${t.summary}\n\n`;
+                md += `- **Date:** ${new Date(t.createdAt).toLocaleString()}\n`;
+                md += `- **Category:** \`${t.category}\`\n`;
+                md += `- **TRUTH SCORE™:** **${t.truthScore}/100**\n`;
+                md += `- **Topics:** ${(t.topics || []).map(x => `#${x}`).join(' ')}\n\n`;
+                md += `### Core Insight\n> ${t.coreInsight}\n\n`;
+                md += `### Full Transcript / Notes\n${t.transcript}\n\n`;
+                md += `---\n\n`;
+            });
+
+            downloadFile(md, `truthmode_thoughts_${Date.now()}.md`, 'text/markdown');
+        }
+
+        function exportAllAsJSON() {
+            if (allThoughts.length === 0) {
+                alert("No thoughts logged to export.");
+                return;
+            }
+
+            // Exclude raw audio blob from JSON export to keep file clean
+            const cleanThoughts = allThoughts.map(({ audioBlob, ...rest }) => rest);
+            const jsonStr = JSON.stringify(cleanThoughts, null, 2);
+            downloadFile(jsonStr, `truthmode_backup_${Date.now()}.json`, 'application/json');
+        }
+
+        function downloadFile(content, fileName, contentType) {
+            const blob = new Blob([content], { type: contentType });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = fileName;
+            a.click();
+            URL.revokeObjectURL(a.href);
+        }
+
+        async function confirmClearDatabase() {
+            if (confirm("DANGER: This will delete ALL thoughts from your phone's database. Make sure you exported a backup first. Proceed?")) {
+                await dbClearAll();
+                allThoughts = [];
+                updateDashboardStats();
+                renderRecentThoughts();
+                renderThoughtsLibrary();
+                document.getElementById('settingsTotalCount').textContent = 0;
+                alert("Local database wiped successfully.");
+            }
+        }
+
+        
+        async function loadSampleThoughts() {
+            const samples = [
+                {
+                    id: 'tm_sample_1',
+                    createdAt: new Date(Date.now() - 1000 * 60 * 35).toISOString(),
+                    transcript: "Most digital marketers are drowning in AI tools instead of building one clean three-step workflow. You don't need 15 disconnected SaaS apps. You need one reliable capture system, one structured synthesis model, and one distribution channel. Everything else is cognitive overload.",
+                    summary: "Digital marketers are suffering from AI tool overwhelm; focus should shift to a streamlined 3-step workflow rather than collecting disconnected tools.",
+                    coreInsight: "Tool consolidation beats tool proliferation: a single integrated capture-to-distribution loop eliminates workflow friction.",
+                    category: "INSIGHT",
+                    topics: ["AIWorkflows", "DigitalMarketing", "ToolOverload", "Productivity"],
+                    truthScore: 92,
+                    truthScoreBreakdown: { originality: 90, specificity: 94, point_of_view: 95, reusability: 89 },
+                    truthScoreRationale: "Strong, counter-narrative perspective with concrete framework potential."
+                },
+                {
+                    id: 'tm_sample_2',
+                    createdAt: new Date(Date.now() - 1000 * 60 * 120).toISOString(),
+                    transcript: "The real bottleneck in consistent organic content creation is never writing the final draft. It's capturing the raw observation in the moment—while walking, driving, or working—before the nuance evaporates from your memory.",
+                    summary: "The true barrier to content velocity is friction in capturing real-time observations, not generating the final text.",
+                    coreInsight: "High-value content originates from fleeting real-world observations; capture velocity determines content quality.",
+                    category: "PROBLEM",
+                    topics: ["ContentCreation", "Observations", "CaptureHabit", "CreativeProcess"],
+                    truthScore: 88,
+                    truthScoreBreakdown: { originality: 86, specificity: 90, point_of_view: 92, reusability: 84 },
+                    truthScoreRationale: "Identifies the root psychological and behavioral friction in personal knowledge capture."
+                },
+                {
+                    id: 'tm_sample_3',
+                    createdAt: new Date(Date.now() - 1000 * 60 * 300).toISOString(),
+                    transcript: "What if TRUTHMODE uses local IndexedDB combined with client-side BM25 search for the first 500 thoughts? It gives instant zero-latency mobile search without needing a costly cloud database or vector server initially.",
+                    summary: "Proposes using local IndexedDB and lightweight client-side search to provide instantaneous mobile performance without cloud overhead.",
+                    coreInsight: "Local-first architecture delivers immediate speed, privacy, and zero server bills for early-stage personal knowledge bases.",
+                    category: "SOLUTION",
+                    topics: ["Architecture", "LocalFirst", "IndexedDB", "Search"],
+                    truthScore: 85,
+                    truthScoreBreakdown: { originality: 82, specificity: 88, point_of_view: 85, reusability: 85 },
+                    truthScoreRationale: "Pragmatic technical decision balancing offline performance, data privacy, and minimal infrastructure cost."
+                }
+            ];
+
+            for (const s of samples) {
+                await dbSaveThought(s);
+            }
+            allThoughts = await dbGetAllThoughts();
+            allThoughts.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+            updateDashboardStats();
+            renderRecentThoughts();
+            if (currentTab === 'thoughts') renderThoughtsLibrary();
+            alert("3 Sample thoughts loaded into your local dataset!");
+        }
+
+        // ==========================================
+        // 11. HELPERS & APP INITIALIZATION
+        // ==========================================
+        function escapeHtml(str) {
+            if (!str) return '';
+            const p = document.createElement('p');
+            p.textContent = str;
+            return p.innerHTML;
+        }
+
+        function formatTimeAgo(date) {
+            const seconds = Math.floor((new Date() - date) / 1000);
+            if (seconds < 60) return "Just now";
+            const minutes = Math.floor(seconds / 60);
+            if (minutes < 60) return `${minutes}m ago`;
+            const hours = Math.floor(minutes / 60);
+            if (hours < 24) return `${hours}h ago`;
+            const days = Math.floor(hours / 24);
+            return `${days}d ago`;
+        }
+
+        window.addEventListener('DOMContentLoaded', async () => {
+            // Register Service Worker for PWA
+            if ('serviceWorker' in navigator) {
+                window.addEventListener('load', () => {
+                    navigator.serviceWorker.register('./sw.js')
+                        .then(reg => console.log('ServiceWorker registered:', reg.scope))
+                        .catch(err => console.log('ServiceWorker registration skipped:', err));
+                });
+            }
+
+            // Restore custom key input if exists
+            if (customApiKey) {
+                document.getElementById('customApiKeyInput').value = customApiKey;
+                document.getElementById('apiStatusLabel').textContent = "Custom Key";
+            }
+
+            // Load all thoughts from IndexedDB
+            allThoughts = await dbGetAllThoughts();
+            allThoughts.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+            updateDashboardStats();
+            renderRecentThoughts();
+
+            // Keyboard shortcut Cmd/Ctrl + Enter in text drawer
+            document.getElementById('typedThoughtInput').addEventListener('keydown', (e) => {
+                if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+                    e.preventDefault();
+                    processTypedThought();
+                }
+            });
+        });
+    </script>
+</body>
+</html>
