@@ -120,7 +120,7 @@
             <div class="flex items-center space-x-2">
                 <span id="apiIndicator" class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
                     <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                    <span id="apiStatusLabel">Gemini Live</span>
+                    <span id="apiStatusLabel">Key Needed</span>
                 </span>
                 <button onclick="switchTab('settings')" class="w-8 h-8 rounded-lg text-brand-muted hover:text-white hover:bg-white/5 transition flex items-center justify-center">
                     <i class="fas fa-sliders-h text-sm"></i>
@@ -850,32 +850,52 @@ Output strictly valid JSON with no markdown wrapping:
 }`;
 
         async function callGemini(payload) {
-            const apiKey = customApiKey || "";
-            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
-
-            const response = await fetch(url, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
-
-            if (!response.ok) {
-                const errJson = await response.json().catch(() => ({}));
-                throw new Error(errJson.error?.message || `HTTP ${response.status}`);
+            const apiKey = (customApiKey || "").trim();
+            if (!apiKey) {
+                throw new Error("NO_API_KEY");
             }
 
-            const data = await response.json();
-            const textResponse = data.candidates?.[0]?.content?.parts?.[0]?.text;
-            if (!textResponse) throw new Error("No response generated from Gemini.");
+            // Using gemini-1.5-flash which is the universal, highly-stable multimodal production model in Google AI Studio
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
 
-            // Clean markdown block wrappers if present
-            const cleanJson = textResponse.replace(/```json/gi, '').replace(/```/g, '').trim();
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 35000); // 35s timeout
+
             try {
-                return JSON.parse(cleanJson);
-            } catch (pErr) {
-                const match = cleanJson.match(/\{[\s\S]*\}/);
-                if (match) return JSON.parse(match[0]);
-                throw new Error("Unable to parse structured JSON from model: " + textResponse);
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload),
+                    signal: controller.signal
+                });
+
+                clearTimeout(timeoutId);
+
+                if (!response.ok) {
+                    const errJson = await response.json().catch(() => ({}));
+                    const msg = errJson.error?.message || `API Error HTTP ${response.status}`;
+                    throw new Error(msg);
+                }
+
+                const data = await response.json();
+                const textResponse = data.candidates?.[0]?.content?.parts?.[0]?.text;
+                if (!textResponse) throw new Error("Gemini returned an empty response. Please try recording again.");
+
+                // Clean markdown block wrappers if present
+                const cleanJson = textResponse.replace(/```json/gi, '').replace(/```/g, '').trim();
+                try {
+                    return JSON.parse(cleanJson);
+                } catch (pErr) {
+                    const match = cleanJson.match(/\{[\s\S]*\}/);
+                    if (match) return JSON.parse(match[0]);
+                    throw new Error("Unable to parse structured response from model.");
+                }
+            } catch (fetchErr) {
+                clearTimeout(timeoutId);
+                if (fetchErr.name === 'AbortError') {
+                    throw new Error("Request timed out after 35 seconds. Check your internet connection.");
+                }
+                throw fetchErr;
             }
         }
 
@@ -908,9 +928,13 @@ Output strictly valid JSON with no markdown wrapping:
 
             } catch (err) {
                 console.error(err);
-                alert("Processing failed: " + err.message);
-            } finally {
                 hideProcessingModal();
+                if (err.message === "NO_API_KEY") {
+                    alert("⚠️ API Key Required: Please go to Settings and paste your Google AI Studio API key to process thoughts.");
+                    switchTab('settings');
+                } else {
+                    alert("Processing Error: " + err.message);
+                }
             }
         }
 
@@ -1520,7 +1544,11 @@ Return structured HTML with clean markup (<h3>, <p>, <ul>, <li>, <strong>) witho
             // Restore custom key input if exists
             if (customApiKey) {
                 document.getElementById('customApiKeyInput').value = customApiKey;
-                document.getElementById('apiStatusLabel').textContent = "Custom Key";
+                document.getElementById('apiStatusLabel').textContent = "Key Active";
+                document.getElementById('apiIndicator').className = "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20";
+            } else {
+                document.getElementById('apiStatusLabel').textContent = "Key Needed";
+                document.getElementById('apiIndicator').className = "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium bg-amber-500/10 text-amber-400 border border-amber-500/20";
             }
 
             // Load all thoughts from IndexedDB
